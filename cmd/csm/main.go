@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -42,6 +43,10 @@ func main() {
 		runUninstall()
 	case "list":
 		runList(os.Args[2:])
+	case "save":
+		runSave(os.Args[2:])
+	case "bookmark":
+		runBookmark(os.Args[2:])
 	default:
 		fmt.Fprintln(os.Stderr, "csm: command not yet implemented:", os.Args[1])
 		os.Exit(2)
@@ -100,6 +105,43 @@ func runList(args []string) {
 	}
 	if err := cli.RunList(os.Stdout, paths, *jsonOut, time.Now()); err != nil {
 		fmt.Fprintln(os.Stderr, "csm list:", err)
+		os.Exit(1)
+	}
+}
+
+func runSave(args []string) {
+	fs := flag.NewFlagSet("save", flag.ExitOnError)
+	all := fs.Bool("all", false, "save every active session without prompting")
+	force := fs.Bool("force", false, "overwrite an existing group with the same name")
+	fs.Parse(args)
+	name := ""
+	if fs.NArg() > 0 {
+		name = fs.Arg(0)
+	}
+
+	paths, err := registry.DefaultPaths()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm save:", err)
+		os.Exit(1)
+	}
+	if err := cli.RunSave(os.Stdout, bufio.NewReader(os.Stdin), paths, name, *all, *force, time.Now()); err != nil {
+		fmt.Fprintln(os.Stderr, "csm save:", err)
+		os.Exit(1)
+	}
+}
+
+func runBookmark(args []string) {
+	name := ""
+	if len(args) > 0 {
+		name = args[0]
+	}
+	paths, err := registry.DefaultPaths()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm bookmark:", err)
+		os.Exit(1)
+	}
+	if err := cli.RunBookmark(os.Stdout, bufio.NewReader(os.Stdin), paths, name, time.Now()); err != nil {
+		fmt.Fprintln(os.Stderr, "csm bookmark:", err)
 		os.Exit(1)
 	}
 }
