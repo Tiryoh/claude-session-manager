@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Tiryoh/claude-session-manager/internal/cli"
 	"github.com/Tiryoh/claude-session-manager/internal/hookcmd"
 	"github.com/Tiryoh/claude-session-manager/internal/install"
 	"github.com/Tiryoh/claude-session-manager/internal/registry"
@@ -39,6 +40,8 @@ func main() {
 		runInstall(os.Args[2:])
 	case "uninstall":
 		runUninstall()
+	case "list":
+		runList(os.Args[2:])
 	default:
 		fmt.Fprintln(os.Stderr, "csm: command not yet implemented:", os.Args[1])
 		os.Exit(2)
@@ -82,6 +85,22 @@ func runInstall(args []string) {
 		fmt.Println("csm: installed hooks into", path, "(backup at", path+".bak)")
 	} else {
 		fmt.Println("csm: hooks already installed in", path)
+	}
+}
+
+func runList(args []string) {
+	fs := flag.NewFlagSet("list", flag.ExitOnError)
+	jsonOut := fs.Bool("json", false, "print machine-readable JSON")
+	fs.Parse(args)
+
+	paths, err := registry.DefaultPaths()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm list:", err)
+		os.Exit(1)
+	}
+	if err := cli.RunList(os.Stdout, paths, *jsonOut, time.Now()); err != nil {
+		fmt.Fprintln(os.Stderr, "csm list:", err)
+		os.Exit(1)
 	}
 }
 
