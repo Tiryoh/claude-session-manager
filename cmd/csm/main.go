@@ -7,9 +7,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/Tiryoh/claude-session-manager/internal/cli"
+	"github.com/Tiryoh/claude-session-manager/internal/claudedir"
 	"github.com/Tiryoh/claude-session-manager/internal/hookcmd"
 	"github.com/Tiryoh/claude-session-manager/internal/install"
 	"github.com/Tiryoh/claude-session-manager/internal/registry"
@@ -47,6 +50,8 @@ func main() {
 		runSave(os.Args[2:])
 	case "bookmark":
 		runBookmark(os.Args[2:])
+	case "open":
+		runOpen(os.Args[2:])
 	default:
 		fmt.Fprintln(os.Stderr, "csm: command not yet implemented:", os.Args[1])
 		os.Exit(2)
@@ -144,6 +149,47 @@ func runBookmark(args []string) {
 		fmt.Fprintln(os.Stderr, "csm bookmark:", err)
 		os.Exit(1)
 	}
+}
+
+func runOpen(args []string) {
+	fs := flag.NewFlagSet("open", flag.ExitOnError)
+	fork := fs.Bool("fork", false, "resume as a fork, leaving the original session untouched")
+	fs.Parse(args)
+	name := ""
+	if fs.NArg() > 0 {
+		name = fs.Arg(0)
+	}
+
+	paths, err := registry.DefaultPaths()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm open:", err)
+		os.Exit(1)
+	}
+	claudeDir, err := claudedir.DefaultClaudeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm open:", err)
+		os.Exit(1)
+	}
+	isTTY := stdinIsTerminal()
+
+	err = cli.RunOpen(os.Stdout, bufio.NewReader(os.Stdin), paths, claudeDir, name, *fork, isTTY, execReplace, time.Now())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm open:", err)
+		os.Exit(1)
+	}
+}
+
+// execReplace changes into dir and replaces the current process with argv,
+// so the caller's terminal becomes the resumed Claude session.
+func execReplace(dir string, argv []string) error {
+	claudePath, err := exec.LookPath("claude")
+	if err != nil {
+		return fmt.Errorf("claude not found on PATH: %w", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		return err
+	}
+	return syscall.Exec(claudePath, argv, os.Environ())
 }
 
 func runUninstall() {
