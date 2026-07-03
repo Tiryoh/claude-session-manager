@@ -52,6 +52,8 @@ func main() {
 		runBookmark(os.Args[2:])
 	case "open":
 		runOpen(os.Args[2:])
+	case "clean":
+		runClean(os.Args[2:])
 	default:
 		fmt.Fprintln(os.Stderr, "csm: command not yet implemented:", os.Args[1])
 		os.Exit(2)
@@ -190,6 +192,28 @@ func execReplace(dir string, argv []string) error {
 		return err
 	}
 	return syscall.Exec(claudePath, argv, os.Environ())
+}
+
+func runClean(args []string) {
+	fs := flag.NewFlagSet("clean", flag.ExitOnError)
+	dryRun := fs.Bool("dry-run", false, "report what would be removed without changing anything")
+	olderThan := fs.Duration("older-than", 720*time.Hour, "prune idle sessions past this age (default 30 days)")
+	fs.Parse(args)
+
+	paths, err := registry.DefaultPaths()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm clean:", err)
+		os.Exit(1)
+	}
+	claudeDir, err := claudedir.DefaultClaudeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm clean:", err)
+		os.Exit(1)
+	}
+	if err := cli.RunClean(os.Stdout, paths, claudeDir, *olderThan, *dryRun, time.Now()); err != nil {
+		fmt.Fprintln(os.Stderr, "csm clean:", err)
+		os.Exit(1)
+	}
 }
 
 func runUninstall() {
