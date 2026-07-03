@@ -5,6 +5,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/Tiryoh/claude-session-manager/internal/hookcmd"
+	"github.com/Tiryoh/claude-session-manager/internal/registry"
 )
 
 const usage = `csm - Claude Code session manager
@@ -25,6 +29,24 @@ func main() {
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)
 	}
-	fmt.Fprintln(os.Stderr, "csm: command not yet implemented:", os.Args[1])
-	os.Exit(2)
+
+	switch os.Args[1] {
+	case "hook":
+		runHook()
+	default:
+		fmt.Fprintln(os.Stderr, "csm: command not yet implemented:", os.Args[1])
+		os.Exit(2)
+	}
+}
+
+// runHook implements `csm hook`. Per the global constraint, it never writes
+// to stdout and always exits 0 -- hookcmd.Run already swallows all errors
+// into the hook log, so there is nothing left to check here.
+func runHook() {
+	paths, err := registry.DefaultPaths()
+	if err != nil {
+		os.Exit(0)
+	}
+	hookcmd.Run(os.Stdin, paths, time.Now())
+	os.Exit(0)
 }
