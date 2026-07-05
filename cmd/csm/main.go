@@ -38,6 +38,9 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "-h", "--help", "help":
+		fmt.Print(usage)
+		os.Exit(0)
 	case "hook":
 		runHook()
 	case "install":
