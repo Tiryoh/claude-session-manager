@@ -9,8 +9,13 @@ accident, `csm` still knows which sessions were open and where.
 
 Claude Code hooks (`SessionStart`, `UserPromptSubmit`, `SessionEnd`) call
 `csm hook` on every session event. `csm` keeps a registry of active sessions
-at `~/.config/claude-session-manager/active.json`. If a session ends
-normally, its entry is removed. If the machine loses power, `SessionEnd`
+in `active.json` under its config directory (Go's `os.UserConfigDir()` +
+`claude-session-manager`; override with `CSM_CONFIG_DIR`):
+
+- Linux: `~/.config/claude-session-manager/active.json`
+- macOS: `~/Library/Application Support/claude-session-manager/active.json`
+
+If a session ends normally, its entry is removed. If the machine loses power, `SessionEnd`
 never fires — the entry just sits there, which is exactly the recovery
 target `csm` is for.
 
