@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Tiryoh/claude-session-manager/internal/cli"
 	"github.com/Tiryoh/claude-session-manager/internal/claudedir"
+	"github.com/Tiryoh/claude-session-manager/internal/cli"
 	"github.com/Tiryoh/claude-session-manager/internal/hookcmd"
 	"github.com/Tiryoh/claude-session-manager/internal/install"
 	"github.com/Tiryoh/claude-session-manager/internal/registry"
@@ -82,7 +82,9 @@ func settingsPath() (string, error) {
 func runInstall(args []string) {
 	fs := flag.NewFlagSet("install", flag.ExitOnError)
 	printOnly := fs.Bool("print", false, "print the merged hooks section without writing")
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
 
 	exePath, err := os.Executable()
 	if err != nil {
@@ -114,7 +116,9 @@ func runInstall(args []string) {
 func runList(args []string) {
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	jsonOut := fs.Bool("json", false, "print machine-readable JSON")
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
 
 	paths, err := registry.DefaultPaths()
 	if err != nil {
@@ -131,7 +135,9 @@ func runSave(args []string) {
 	fs := flag.NewFlagSet("save", flag.ExitOnError)
 	all := fs.Bool("all", false, "save every active session without prompting")
 	force := fs.Bool("force", false, "overwrite an existing group with the same name")
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
 	name := ""
 	if fs.NArg() > 0 {
 		name = fs.Arg(0)
@@ -167,7 +173,9 @@ func runBookmark(args []string) {
 func runOpen(args []string) {
 	fs := flag.NewFlagSet("open", flag.ExitOnError)
 	fork := fs.Bool("fork", false, "resume as a fork, leaving the original session untouched")
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
 	name := ""
 	if fs.NArg() > 0 {
 		name = fs.Arg(0)
@@ -209,7 +217,9 @@ func runClean(args []string) {
 	fs := flag.NewFlagSet("clean", flag.ExitOnError)
 	dryRun := fs.Bool("dry-run", false, "report what would be removed without changing anything")
 	olderThan := fs.Duration("older-than", 720*time.Hour, "prune idle sessions past this age (default 30 days)")
-	fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
 
 	paths, err := registry.DefaultPaths()
 	if err != nil {

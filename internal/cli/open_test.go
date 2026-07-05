@@ -29,7 +29,7 @@ func seedTranscript(t *testing.T, claudeDir, cwd, sessionID string) {
 func encodeForTest(cwd string) string {
 	out := []byte(cwd)
 	for i, c := range out {
-		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9') {
+		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
 			out[i] = '-'
 		}
 	}
