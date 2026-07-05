@@ -106,3 +106,7 @@ process). Because that bypasses the shell, any shell function/alias/flag you
 normally wrap `claude` in (e.g. a `claude() { command claude --foo "$@"; }`
 function) is **not** applied — `csm open` always launches the plain
 `claude` binary found on `PATH`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
