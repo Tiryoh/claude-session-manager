@@ -18,9 +18,14 @@ import (
 	"github.com/Tiryoh/claude-session-manager/internal/registry"
 )
 
+// version is set at link time via -ldflags "-X main.version=...".
+// Defaults to "dev" for local go build / go install.
+var version = "dev"
+
 const usage = `csm - Claude Code session manager
 
 Usage:
+  csm --version                  print the version and exit
   csm hook                       (invoked by Claude Code hooks; not for manual use)
   csm install [--print]          install csm hooks into ~/.claude/settings.json
   csm uninstall                  remove csm hooks from ~/.claude/settings.json
@@ -40,6 +45,9 @@ func main() {
 	switch os.Args[1] {
 	case "-h", "--help", "help":
 		fmt.Print(usage)
+		os.Exit(0)
+	case "-version", "--version", "version":
+		fmt.Println(version)
 		os.Exit(0)
 	case "hook":
 		runHook()
