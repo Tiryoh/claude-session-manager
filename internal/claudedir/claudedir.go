@@ -4,6 +4,9 @@
 package claudedir
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -38,6 +41,55 @@ func TranscriptPath(claudeDir, cwd, sessionID string) string {
 func TranscriptExists(claudeDir, cwd, sessionID string) bool {
 	_, err := os.Stat(TranscriptPath(claudeDir, cwd, sessionID))
 	return err == nil
+}
+
+// lastPromptTailBytes bounds how much of a transcript LastPrompt reads: it
+// only ever needs the final "last-prompt" entry, which Claude Code appends
+// once per user turn, so this comfortably covers even a very chatty final
+// turn without loading a whole (potentially multi-GB) transcript into memory.
+const lastPromptTailBytes = 64 * 1024
+
+// LastPrompt returns the most recent user prompt recorded for sessionID, as
+// tracked in Claude Code's own transcript via "last-prompt" entries -- this
+// lets csm show it without having to parse tool-result/thinking/text content
+// shapes out of the raw (and undocumented) transcript format itself. ok is
+// false if the transcript is missing or has no last-prompt entry in the part
+// read.
+func LastPrompt(claudeDir, cwd, sessionID string) (string, bool) {
+	f, err := os.Open(TranscriptPath(claudeDir, cwd, sessionID))
+	if err != nil {
+		return "", false
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return "", false
+	}
+	start := int64(0)
+	if size := info.Size(); size > lastPromptTailBytes {
+		start = size - lastPromptTailBytes
+	}
+	if _, err := f.Seek(start, io.SeekStart); err != nil {
+		return "", false
+	}
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return "", false
+	}
+
+	prompt, ok := "", false
+	for line := range bytes.SplitSeq(data, []byte("\n")) {
+		var entry struct {
+			Type       string `json:"type"`
+			LastPrompt string `json:"lastPrompt"`
+		}
+		if json.Unmarshal(line, &entry) != nil || entry.Type != "last-prompt" || entry.LastPrompt == "" {
+			continue
+		}
+		prompt, ok = entry.LastPrompt, true
+	}
+	return prompt, ok
 }
 
 // DefaultClaudeDir resolves Claude Code's data directory: $CSM_CLAUDE_DIR if

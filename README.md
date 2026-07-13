@@ -17,7 +17,10 @@ in `active.json` under its config directory (Go's `os.UserConfigDir()` +
 
 If a session ends normally, its entry is removed. If the machine loses power, `SessionEnd`
 never fires — the entry just sits there, which is exactly the recovery
-target `csm` is for.
+target `csm` is for. Since a leftover entry might belong to a session whose
+`claude` process is actually gone, `csm list` scans the process table (by
+`--resume <id>` argv and by cwd) and marks any active entry it can't find a
+live process for as `[not running]`.
 
 ## Install
 
@@ -34,6 +37,7 @@ Run it again any time — it's idempotent. `csm uninstall` removes them.
 
 ```bash
 csm list                          # see active sessions, saved groups, bookmarks
+csm list --first-message           # show each session's first message instead of its most recent
 csm save sprint-23                # snapshot the current active sessions as a group (interactive picker)
 csm save --all --force autosave   # snapshot everything without prompting -- good for cron
 csm bookmark robot-fw             # snapshot one session by picking it interactively

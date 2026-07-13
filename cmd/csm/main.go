@@ -15,6 +15,7 @@ import (
 	"github.com/Tiryoh/claude-session-manager/internal/cli"
 	"github.com/Tiryoh/claude-session-manager/internal/hookcmd"
 	"github.com/Tiryoh/claude-session-manager/internal/install"
+	"github.com/Tiryoh/claude-session-manager/internal/procscan"
 	"github.com/Tiryoh/claude-session-manager/internal/registry"
 )
 
@@ -29,7 +30,9 @@ Usage:
   csm hook                       (invoked by Claude Code hooks; not for manual use)
   csm install [--print]          install csm hooks into ~/.claude/settings.json
   csm uninstall                  remove csm hooks from ~/.claude/settings.json
-  csm list [--json]              show active sessions, groups, and bookmarks
+  csm list [--json] [--first-message]   show active sessions, groups, and bookmarks
+                                  (shows each session's most recent message
+                                  by default; --first-message shows its first)
   csm save [name] [--all] [--force]   snapshot active sessions as a named group
   csm bookmark [name]            snapshot one active session
   csm open [name] [--fork]       resume a saved session
@@ -116,6 +119,7 @@ func runInstall(args []string) {
 func runList(args []string) {
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	jsonOut := fs.Bool("json", false, "print machine-readable JSON")
+	firstMessage := fs.Bool("first-message", false, "show each session's first message instead of its most recent")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
 	}
@@ -125,7 +129,12 @@ func runList(args []string) {
 		fmt.Fprintln(os.Stderr, "csm list:", err)
 		os.Exit(1)
 	}
-	if err := cli.RunList(os.Stdout, paths, *jsonOut, time.Now()); err != nil {
+	claudeDir, err := claudedir.DefaultClaudeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "csm list:", err)
+		os.Exit(1)
+	}
+	if err := cli.RunList(os.Stdout, paths, claudeDir, *jsonOut, *firstMessage, procscan.Scan, time.Now()); err != nil {
 		fmt.Fprintln(os.Stderr, "csm list:", err)
 		os.Exit(1)
 	}
